@@ -296,7 +296,7 @@ static void avb_1722_1_create_adp_packet(int message_type, guid_t guid)
         hton_32(pkt->available_index, avb_1722_1_available_index);
         memcpy(pkt->gptp_grandmaster_id, gptp_grandmaster_id.c, 8);
         pkt->gptp_domain_number = 0;
-        hton_16(pkt->identify_control_index, 0);
+        hton_16(pkt->identify_control_index, DESCRIPTOR_INDEX_CONTROL_IDENTIFY);
         hton_32(pkt->association_id, AVB_1722_1_ADP_ASSOCIATION_ID);
         hton_16(pkt->interface_index, 0);
     }
