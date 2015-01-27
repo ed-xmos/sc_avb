@@ -478,6 +478,8 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
                  client interface media_clock_if ?i_media_clock_ctl,
                  chanend c_ptp) {
 
+  int volumes[2] = {AVB_VOLUME_UNITY, AVB_VOLUME_UNITY};
+
   register_media(c_media_ctl);
   init_media_clock_server(i_media_clock_ctl);
 
@@ -518,6 +520,16 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
                                           media_clock_info_t info):
       i_media_clock_ctl.set_clock_info(clock_num, info);
       break;
+#if MEDIA_OUTPUT_FIFO_VOLUME_CONTROL
+    case avb[int i]._set_avb_source_volumes(unsigned sink_num,
+                                          unsigned channel,
+                                          int volume):
+
+      volumes[channel] = volume;
+      int count = channel + 1;
+      set_avb_source_volumes(sink_num, volumes, count);
+      break;
+#endif
     }
   }
 }
@@ -541,19 +553,21 @@ int set_avb_source_port(unsigned source_num,
   }
 }
 
-#ifdef MEDIA_OUTPUT_FIFO_VOLUME_CONTROL
+#if MEDIA_OUTPUT_FIFO_VOLUME_CONTROL
 void set_avb_source_volumes(unsigned sink_num, int volumes[], int count)
 {
 	if (sink_num < AVB_NUM_SINKS) {
-    unsafe {
+    unsafe  {
       avb_sink_info_t *sink = &sinks[sink_num];
       chanend *unsafe c = sink->listener_ctl;
-      *c <: AVB1722_ADJUST_LISTENER_STREAM;
-      *c <: sink->stream.local_id;
-      *c <: AVB1722_ADJUST_LISTENER_VOLUME;
-      *c <: count;
-      for (int i=0;i<count;i++) {
-        *c <:  volumes[i];
+      master {
+          *c <: (int)AVB1722_ADJUST_LISTENER_STREAM;
+          *c <: (int)sink->stream.local_id;
+          *c <: AVB1722_ADJUST_LISTENER_VOLUME;
+          *c <: count;
+          for (int i=0;i<count;i++) {
+            *c <:  volumes[i];
+          }
       }
     }
 	}

@@ -23,6 +23,10 @@ interface avb_interface {
   media_clock_info_t _get_media_clock_info(unsigned clock_num);
   /** Intended for internal use within client interface get and set extensions only */
   void _set_media_clock_info(unsigned clock_num, media_clock_info_t info);
+#if MEDIA_OUTPUT_FIFO_VOLUME_CONTROL
+  /** Intended for internal use within client interface get and set extensions only */
+  void _set_avb_source_volumes(unsigned sink_num, unsigned channel, int volume);
+#endif
 };
 
 
@@ -856,9 +860,30 @@ extends client interface avb_interface : {
     return 1;
   }
 
-}
+  /** Set the volume of channels within a stream
+   *
+   *  \param clock_num the number of the media clock
+   *  \param clock_type the type of the clock
+   *
+   **/
+#if MEDIA_OUTPUT_FIFO_VOLUME_CONTROL
+  static inline int set_avb_source_volumes(client interface avb_interface i,
+                                          unsigned sink_num,
+                                          int volumes[],
+                                          int count)
+  {
 
+    for(unsigned channel=0; channel<count; channel++){
+      i._set_avb_source_volumes(sink_num, channel, volumes[channel]);
+    }
+    return 1;
+  }
 #endif
+}
+#endif
+
+
+
 
 int avb_get_source_state(CLIENT_INTERFACE(avb_interface, avb), unsigned source_num, REFERENCE_PARAM(enum avb_source_state_t, state));
 int avb_set_source_state(CLIENT_INTERFACE(avb_interface, avb), unsigned source_num, enum avb_source_state_t state);
