@@ -89,7 +89,9 @@ extern inline void i2s_master_upto_8(const clock mclk,
                                      int num_in,
                                      int master_to_word_clock_ratio,
                                      streaming chanend ?c_listener,
-                                     media_input_fifo_t (&?input_fifos)[]);
+                                     media_input_fifo_t (&?input_fifos)[],
+                                     chanend c_spdif_tx,
+                                     server interface spdif_sr_ctl i_spdif_sr_ctrl);
 
 extern inline void i2s_master_upto_4(const clock mclk,
                                      clock bclk,
@@ -101,7 +103,9 @@ extern inline void i2s_master_upto_4(const clock mclk,
                                      int num_in,
                                      int master_to_word_clock_ratio,
                                      media_input_fifo_t (&?input_fifos)[],
-                                     media_output_fifo_t (&?output_fifos)[]);
+                                     media_output_fifo_t (&?output_fifos)[],
+                                     chanend c_spdif_tx,
+                                     server interface spdif_sr_ctl i_spdif_sr_ctrl);
 
 
 

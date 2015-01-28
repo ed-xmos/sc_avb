@@ -8,6 +8,7 @@
 
 #include "avb_conf.h"
 #include "media_fifo.h"
+#include "spdif_ctrl.h"
 #include <xclib.h>
 #ifdef __XC__
 
@@ -88,7 +89,9 @@ inline void i2s_master_upto_8(const clock mclk,
                               int num_in,
                               int master_to_word_clock_ratio,
                               streaming chanend ?c_listener,
-                              media_input_fifo_t (&?input_fifos)[])
+                              media_input_fifo_t (&?input_fifos)[],
+                              chanend c_spdif_tx,
+                              server interface spdif_sr_ctl i_spdif_sr_ctrl)
 {
   int mclk_to_bclk_ratio = master_to_word_clock_ratio / 64;
   unsigned int bclk_val;
@@ -245,11 +248,14 @@ inline void i2s_master_upto_4(const clock mclk,
                               int num_in,
                               int master_to_word_clock_ratio,
                               media_input_fifo_t (&?input_fifos)[],
-                              media_output_fifo_t (&?output_fifos)[])
+                              media_output_fifo_t (&?output_fifos)[],
+                              chanend c_spdif_tx,
+                              server interface spdif_sr_ctl i_spdif_ctrl)
 {
   int mclk_to_bclk_ratio = master_to_word_clock_ratio / 64;
   unsigned int bclk_val;
   unsigned int lrclk_val = 0xFFFFFFFF;
+  unsigned int sample_rate = 48000;
 
 #if SAMPLE_COUNTER_TEST
   unsigned int sample_counter=0;
@@ -314,6 +320,10 @@ inline void i2s_master_upto_4(const clock mclk,
 
   // the unroll directives in the following loops only make sense if this
   // function is inlined into a more specific version
+
+  outuint(c_spdif_tx, sample_rate);
+  outuint(c_spdif_tx, master_to_word_clock_ratio * sample_rate);
+
   while (1) {
 
 	  unsigned int timestamp;
@@ -374,7 +384,19 @@ inline void i2s_master_upto_4(const clock mclk,
           unsigned int sample_out;
           sample_out = media_output_fifo_pull_sample(output_fifos[j+k*2],
                                                      timestamp);
-          sample_out = bitrev(sample_out << 8);
+          sample_out = sample_out << 8;
+#if SPDIF_OUT
+
+/*
+                 outuint(c_spdif_out, curSamFreq);
+                outuint(c_spdif_out, mClk);
+
+                 outct(c_spdif_out, XS1_CT_END);
+ */
+
+          if (k == 0) outuint(c_spdif_tx, sample_out);
+#endif
+          sample_out = bitrev(sample_out);
 #pragma xta endpoint "i2s_master_sample_output"
           p_dout[k] <: sample_out;
         }
@@ -425,7 +447,9 @@ static inline void i2s_master(i2s_ports_t &ports,
                               media_input_fifo_t (&?input_fifos)[],
                               media_output_fifo_t (&?output_fifos)[],
                               chanend media_ctl,
-                              int clk_ctl_index)
+                              int clk_ctl_index,
+                              chanend c_spdif_tx,
+                              server interface spdif_sr_ctl i_spdif_sr_ctrl)
 {
   media_ctl_register(media_ctl,
                      input_fifos, num_in,
@@ -449,7 +473,9 @@ static inline void i2s_master(i2s_ports_t &ports,
                       num_in,
                       master_to_word_clock_ratio,
                       input_fifos,
-                      output_fifos);
+                      output_fifos,
+                      c_spdif_tx,
+                      i_spdif_sr_ctrl);
   }
   else
   {
@@ -471,7 +497,9 @@ static inline void i2s_master(i2s_ports_t &ports,
                         num_in,
                         master_to_word_clock_ratio,
                         c_samples_to_codec,
-                        input_fifos);
+                        input_fifos,
+                        c_spdif_tx,
+                        i_spdif_sr_ctrl);
     }
   }
 

@@ -19,6 +19,7 @@
 #include "avb_api.h"
 #include "avb_srp_interface.h"
 
+
 #if AVB_ENABLE_1722_1
 #include "avb_1722_1.h"
 #include "avb_1722_1_adp.h"
@@ -476,7 +477,8 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
                  chanend (&?c_talker_ctl)[],
                  chanend c_mac_tx,
                  client interface media_clock_if ?i_media_clock_ctl,
-                 chanend c_ptp) {
+                 chanend c_ptp,
+                 client interface spdif_sr_ctl i_sr_ctrl) {
 
   int volumes[2] = {AVB_VOLUME_UNITY, AVB_VOLUME_UNITY};
 
