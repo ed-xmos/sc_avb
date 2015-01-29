@@ -8,7 +8,9 @@
 #include "avb_1722_1_callbacks.h"
 #include "spi.h"
 #include "media_clock_server.h"
+#if SPDIF_OUT
 #include "spdif_ctrl.h"
+#endif
 
 #ifndef MAX_AVB_CONTROL_PACKET_SIZE
 #define MAX_AVB_CONTROL_PACKET_SIZE (1518)
@@ -36,10 +38,12 @@ void avb_manager(server interface avb_interface i_avb[num_avb_clients], unsigned
                  chanend (&?c_talker_ctl)[],
                  chanend c_mac_tx,
                  client interface media_clock_if ?i_media_clock_ctl,
-                 chanend c_ptp,
-                 client interface spdif_sr_ctl i_sr_ctrl);
+                 chanend c_ptp
+#if SPDIF_OUT
+                 ,client interface spdif_sr_ctl i_sr_ctrl
 #endif
-
+                );
+#endif
 /** Receives an 802.1Qat SRP packet or an IEEE 1722 control packet.
  *
  *  This function receives an AVB control packet from the ethernet MAC.

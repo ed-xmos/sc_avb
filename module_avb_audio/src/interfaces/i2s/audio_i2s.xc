@@ -11,6 +11,10 @@
 #include <print.h>
 #include "audio_i2s.h"
 #include "media_fifo.h"
+#if SPDIF_OUT
+#include "spdif_ctrl.h"
+#endif
+
 
 #define I2S_SINE_TABLE_SIZE 100
 
@@ -89,9 +93,12 @@ extern inline void i2s_master_upto_8(const clock mclk,
                                      int num_in,
                                      int master_to_word_clock_ratio,
                                      streaming chanend ?c_listener,
-                                     media_input_fifo_t (&?input_fifos)[],
-                                     chanend c_spdif_tx,
-                                     server interface spdif_sr_ctl i_spdif_sr_ctrl);
+                                     media_input_fifo_t (&?input_fifos)[]
+#if SPDIF_OUT
+                                     ,chanend c_spdif_tx,
+                                     server interface spdif_sr_ctl i_spdif_ctrl
+#endif
+                                     );
 
 extern inline void i2s_master_upto_4(const clock mclk,
                                      clock bclk,
@@ -103,9 +110,12 @@ extern inline void i2s_master_upto_4(const clock mclk,
                                      int num_in,
                                      int master_to_word_clock_ratio,
                                      media_input_fifo_t (&?input_fifos)[],
-                                     media_output_fifo_t (&?output_fifos)[],
-                                     chanend c_spdif_tx,
-                                     server interface spdif_sr_ctl i_spdif_sr_ctrl);
+                                     media_output_fifo_t (&?output_fifos)[]
+#if SPDIF_OUT
+                                     ,chanend c_spdif_tx,
+                                     server interface spdif_sr_ctl i_spdif_ctrl
+#endif
+                                     );
 
 
 

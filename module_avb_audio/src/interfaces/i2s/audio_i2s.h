@@ -8,7 +8,9 @@
 
 #include "avb_conf.h"
 #include "media_fifo.h"
+#if SPDIF_OUT
 #include "spdif_ctrl.h"
+#endif
 #include <xclib.h>
 #ifdef __XC__
 
@@ -89,13 +91,19 @@ inline void i2s_master_upto_8(const clock mclk,
                               int num_in,
                               int master_to_word_clock_ratio,
                               streaming chanend ?c_listener,
-                              media_input_fifo_t (&?input_fifos)[],
-                              chanend c_spdif_tx,
-                              server interface spdif_sr_ctl i_spdif_sr_ctrl)
+                              media_input_fifo_t (&?input_fifos)[]
+#if SPDIF_OUT
+                              ,chanend c_spdif_tx,
+                              server interface spdif_sr_ctl i_spdif_sr_ctrl
+#endif
+                              )
 {
   int mclk_to_bclk_ratio = master_to_word_clock_ratio / 64;
   unsigned int bclk_val;
   unsigned int lrclk_val = 0xFFFFFFFF;
+#if SPDIF_OUT
+  unsigned int sample_rate = 48000;
+#endif
 
 #if SAMPLE_COUNTER_TEST
   unsigned int sample_counter=0;
@@ -221,7 +229,11 @@ inline void i2s_master_upto_8(const clock mclk,
         if (k < num_out>>1) {
           unsigned int sample_out;
           c_listener :> sample_out;
-          sample_out = bitrev(sample_out << 8);
+          sample_out = sample_out << 8;
+#if SPDIF_OUT
+          if (k == 0) outuint(c_spdif_tx, sample_out);
+#endif
+          sample_out = bitrev(sample_out);
 #pragma xta endpoint "i2s_master_sample_output"
           p_dout[k] <: sample_out;
         }
@@ -231,6 +243,21 @@ inline void i2s_master_upto_8(const clock mclk,
 #if SAMPLE_COUNTER_TEST
     sample_counter++;
 #endif
+
+#if SPDIF_OUT
+    select{
+        case i_spdif_sr_ctrl.set_sample_rate(unsigned new_sr):
+        sample_rate = new_sr;
+        outct(c_spdif_tx, XS1_CT_END);
+        outuint(c_spdif_tx, sample_rate);
+        outuint(c_spdif_tx, master_to_word_clock_ratio * sample_rate);
+        break;
+
+        default:
+        break;
+    }
+#endif
+
 
     media_input_fifo_update_enable_ind_state(active_fifos, 0xFFFFFFFF);
   }
@@ -248,15 +275,19 @@ inline void i2s_master_upto_4(const clock mclk,
                               int num_in,
                               int master_to_word_clock_ratio,
                               media_input_fifo_t (&?input_fifos)[],
-                              media_output_fifo_t (&?output_fifos)[],
-                              chanend c_spdif_tx,
-                              server interface spdif_sr_ctl i_spdif_ctrl)
+                              media_output_fifo_t (&?output_fifos)[]
+#if SPDIF_OUT
+                              ,chanend c_spdif_tx,
+                              server interface spdif_sr_ctl i_spdif_sr_ctrl
+#endif
+                              )
 {
   int mclk_to_bclk_ratio = master_to_word_clock_ratio / 64;
   unsigned int bclk_val;
   unsigned int lrclk_val = 0xFFFFFFFF;
+#if SPDIF_OUT
   unsigned int sample_rate = 48000;
-
+#endif
 #if SAMPLE_COUNTER_TEST
   unsigned int sample_counter=0;
 #endif
@@ -321,8 +352,10 @@ inline void i2s_master_upto_4(const clock mclk,
   // the unroll directives in the following loops only make sense if this
   // function is inlined into a more specific version
 
+#if SPDIF_OUT
   outuint(c_spdif_tx, sample_rate);
   outuint(c_spdif_tx, master_to_word_clock_ratio * sample_rate);
+#endif
 
   while (1) {
 
@@ -386,14 +419,6 @@ inline void i2s_master_upto_4(const clock mclk,
                                                      timestamp);
           sample_out = sample_out << 8;
 #if SPDIF_OUT
-
-/*
-                 outuint(c_spdif_out, curSamFreq);
-                outuint(c_spdif_out, mClk);
-
-                 outct(c_spdif_out, XS1_CT_END);
- */
-
           if (k == 0) outuint(c_spdif_tx, sample_out);
 #endif
           sample_out = bitrev(sample_out);
@@ -405,6 +430,20 @@ inline void i2s_master_upto_4(const clock mclk,
 
 #if SAMPLE_COUNTER_TEST
     sample_counter++;
+#endif
+
+#if SPDIF_OUT
+    select{
+        case i_spdif_sr_ctrl.set_sample_rate(unsigned new_sr):
+        sample_rate = new_sr;
+        outct(c_spdif_tx, XS1_CT_END);
+        outuint(c_spdif_tx, sample_rate);
+        outuint(c_spdif_tx, master_to_word_clock_ratio * sample_rate);
+        break;
+
+        default:
+        break;
+    }
 #endif
 
     media_input_fifo_update_enable_ind_state(active_fifos, 0xFFFFFFFF);
@@ -447,9 +486,12 @@ static inline void i2s_master(i2s_ports_t &ports,
                               media_input_fifo_t (&?input_fifos)[],
                               media_output_fifo_t (&?output_fifos)[],
                               chanend media_ctl,
-                              int clk_ctl_index,
-                              chanend c_spdif_tx,
-                              server interface spdif_sr_ctl i_spdif_sr_ctrl)
+                              int clk_ctl_index
+#if SPDIF_OUT
+                              ,chanend c_spdif_tx,
+                              server interface spdif_sr_ctl i_spdif_sr_ctrl
+#endif
+                              )
 {
   media_ctl_register(media_ctl,
                      input_fifos, num_in,
@@ -473,9 +515,12 @@ static inline void i2s_master(i2s_ports_t &ports,
                       num_in,
                       master_to_word_clock_ratio,
                       input_fifos,
-                      output_fifos,
-                      c_spdif_tx,
-                      i_spdif_sr_ctrl);
+                      output_fifos
+#if SPDIF_OUT
+                      ,c_spdif_tx,
+                      i_spdif_sr_ctrl
+#endif
+                      );
   }
   else
   {
@@ -497,9 +542,12 @@ static inline void i2s_master(i2s_ports_t &ports,
                         num_in,
                         master_to_word_clock_ratio,
                         c_samples_to_codec,
-                        input_fifos,
-                        c_spdif_tx,
-                        i_spdif_sr_ctrl);
+                        input_fifos
+#if SPDIF_OUT
+                        ,c_spdif_tx,
+                        i_spdif_sr_ctrl
+#endif
+                          );
     }
   }
 

@@ -477,8 +477,11 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
                  chanend (&?c_talker_ctl)[],
                  chanend c_mac_tx,
                  client interface media_clock_if ?i_media_clock_ctl,
-                 chanend c_ptp,
-                 client interface spdif_sr_ctl i_sr_ctrl) {
+                 chanend c_ptp
+#if SPDIF_OUT
+                 ,client interface spdif_sr_ctl i_sr_ctrl
+#endif
+                 ) {
 
   int volumes[2] = {AVB_VOLUME_UNITY, AVB_VOLUME_UNITY};
 
@@ -513,6 +516,9 @@ void avb_manager(server interface avb_interface avb[num_avb_clients], unsigned n
         update_sink_state(sink_num, prev_state, info.stream.state, c_mac_tx,
                           i_media_clock_ctl, i_srp);
       }
+#if SPDIF_OUT
+      if (sink_num == 0) i_sr_ctrl.set_sample_rate(info.stream.rate); //Notify SPDIF via I2S of SR change
+#endif
       break;
     case avb[int i]._get_media_clock_info(unsigned clock_num)
       -> media_clock_info_t info:
